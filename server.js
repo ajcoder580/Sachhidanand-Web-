@@ -22,6 +22,7 @@ app.use(express.urlencoded({ extended: true }));
 // Routes
 app.get("/", (req, res) => {
      res.send("School ERP System API is running");
+    
 });
 app.use('/auth', authRoutes);
 
