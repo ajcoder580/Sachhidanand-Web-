@@ -59,7 +59,8 @@ const userSchema = new Schema({
     medium: {
         type: String,
         required: false,
-        enum: ['English', 'Hindi'],
+        enum: ['English', 'Hindi', 'NA'],
+        default: 'NA'
     },
     preparingFor: {
         type: String,
