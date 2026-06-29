@@ -1,4 +1,5 @@
 const Result = require('../models/resultModel');
+const { logger } = require('../config/logger');
 
 // Get all results
 const getResults = async (req, res) => {
@@ -6,7 +7,7 @@ const getResults = async (req, res) => {
         const results = await Result.find({}).sort({ createdAt: -1 });
         res.status(200).json({ success: true, data: results });
     } catch (error) {
-        console.error('Get Results Error:', error);
+        logger.error('Get results error', { stack: error.stack });
         res.status(500).json({ success: false, message: 'Server error while fetching results', error: error.message });
     }
 };
@@ -28,7 +29,7 @@ const createResult = async (req, res) => {
         await newResult.save();
         res.status(201).json({ success: true, message: 'Result created successfully', data: newResult });
     } catch (error) {
-        console.error('Create Result Error:', error);
+        logger.error('Create result error', { stack: error.stack });
         res.status(500).json({ success: false, message: 'Server error while creating result', error: error.message });
     }
 };
@@ -51,7 +52,7 @@ const updateResult = async (req, res) => {
         
         res.status(200).json({ success: true, message: 'Result updated successfully', data: updatedResult });
     } catch (error) {
-        console.error('Update Result Error:', error);
+        logger.error('Update result error', { stack: error.stack });
         res.status(500).json({ success: false, message: 'Server error while updating result', error: error.message });
     }
 };
@@ -68,7 +69,7 @@ const deleteResult = async (req, res) => {
         
         res.status(200).json({ success: true, message: 'Result deleted successfully' });
     } catch (error) {
-        console.error('Delete Result Error:', error);
+        logger.error('Delete result error', { stack: error.stack });
         res.status(500).json({ success: false, message: 'Server error while deleting result', error: error.message });
     }
 };
@@ -78,7 +79,7 @@ const seedInitialResults = async () => {
     try {
         const count = await Result.countDocuments();
         if (count === 0) {
-            console.log('Seeding initial results database...');
+            logger.info('Seeding initial results database...');
             const defaultResults = [
                 {
                     name: "Priya Sharma",
@@ -130,10 +131,10 @@ const seedInitialResults = async () => {
                 }
             ];
             await Result.insertMany(defaultResults);
-            console.log('Seeding initial results completed successfully');
+            logger.info('Seeding initial results completed successfully');
         }
     } catch (error) {
-        console.error('Seeding Results Error:', error);
+        logger.error('Seeding results error', { stack: error.stack });
     }
 };
 

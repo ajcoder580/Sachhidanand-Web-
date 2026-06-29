@@ -17,11 +17,13 @@
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
     "express": "^5.1.0",
+    "express-rate-limit": "^8.5.2",
     "joi": "^18.0.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.17.0",
     "multer": "^2.2.0",
-    "route": "^0.2.5"
+    "route": "^0.2.5",
+    "winston": "^3.19.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"

@@ -1,6 +1,7 @@
 const joi = require('joi');
 const jwt = require('jsonwebtoken');
 const User = require('../models/userModel');
+const { logger } = require('../config/logger');
 
 // Middleware to verify JWT token
 const authenticateToken = (req, res, next) => {
@@ -20,7 +21,7 @@ const authenticateToken = (req, res, next) => {
         req.user = decoded;
         next();
     } catch (error) {
-        console.error('Token verification error:', error);
+        logger.warn('Token verification failed', { message: error.message });
         return res.status(403).json({ message: 'Invalid or expired token', success: false });
     }
 };

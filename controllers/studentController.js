@@ -2,6 +2,7 @@ const Student = require('../models/studentModel');
 const cloudinary = require('cloudinary').v2;
 const fs = require('fs');
 const path = require('path');
+const { logger } = require('../config/logger');
 
 // Configure Cloudinary if credentials are set in environment
 const isCloudinaryConfigured = process.env.CLOUDINARY_CLOUD_NAME && 
@@ -76,7 +77,7 @@ const uploadDocument = async (req, res) => {
             url: fileUrl
         });
     } catch (error) {
-        console.error('File upload error:', error);
+        logger.error('File upload error', { stack: error.stack });
         res.status(500).json({ success: false, message: 'File upload failed', error: error.message });
     }
 };
@@ -120,7 +121,7 @@ const applyAdmission = async (req, res) => {
             data: newStudent
         });
     } catch (error) {
-        console.error('Apply admission error:', error);
+        logger.error('Apply admission error', { stack: error.stack });
         res.status(500).json({ success: false, message: 'Failed to submit application', error: error.message });
     }
 };
@@ -143,7 +144,7 @@ const getMyApplication = async (req, res) => {
             data: application
         });
     } catch (error) {
-        console.error('Get my application error:', error);
+        logger.error('Get my application error', { stack: error.stack });
         res.status(500).json({ success: false, message: 'Failed to fetch application', error: error.message });
     }
 };
@@ -187,7 +188,7 @@ const editMyApplication = async (req, res) => {
             data: application
         });
     } catch (error) {
-        console.error('Edit my application error:', error);
+        logger.error('Edit my application error', { stack: error.stack });
         res.status(500).json({ success: false, message: 'Failed to update application', error: error.message });
     }
 };
@@ -237,7 +238,7 @@ const adminGetApplications = async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('Admin get applications error:', error);
+        logger.error('Admin get applications error', { stack: error.stack });
         res.status(500).json({ success: false, message: 'Failed to fetch applications', error: error.message });
     }
 };
@@ -257,7 +258,7 @@ const adminGetApplicationById = async (req, res) => {
             data: application
         });
     } catch (error) {
-        console.error('Admin get application by ID error:', error);
+        logger.error('Admin get application by ID error', { stack: error.stack });
         res.status(500).json({ success: false, message: 'Failed to fetch application', error: error.message });
     }
 };
@@ -307,7 +308,7 @@ const adminUpdateStatus = async (req, res) => {
             data: application
         });
     } catch (error) {
-        console.error('Admin update status error:', error);
+        logger.error('Admin update status error', { stack: error.stack });
         res.status(500).json({ success: false, message: 'Failed to update status', error: error.message });
     }
 };
@@ -343,7 +344,7 @@ const adminUpdateApplication = async (req, res) => {
             data: application
         });
     } catch (error) {
-        console.error('Admin edit student record error:', error);
+        logger.error('Admin edit student record error', { stack: error.stack });
         res.status(500).json({ success: false, message: 'Failed to update student record', error: error.message });
     }
 };
@@ -363,7 +364,7 @@ const adminDeleteApplication = async (req, res) => {
             message: 'Student record deleted successfully'
         });
     } catch (error) {
-        console.error('Admin delete student record error:', error);
+        logger.error('Admin delete student record error', { stack: error.stack });
         res.status(500).json({ success: false, message: 'Failed to delete student record', error: error.message });
     }
 };
@@ -407,7 +408,7 @@ const adminGetStats = async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('Admin get stats error:', error);
+        logger.error('Admin get stats error', { stack: error.stack });
         res.status(500).json({ success: false, message: 'Failed to fetch dashboard stats', error: error.message });
     }
 };

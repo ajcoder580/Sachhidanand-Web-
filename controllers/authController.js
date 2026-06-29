@@ -1,6 +1,7 @@
 const User = require('../models/userModel');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const { logger } = require('../config/logger');
 
 const signup = async (req, res) => {
     try {
@@ -31,7 +32,7 @@ const signup = async (req, res) => {
 
         res.status(201).json({ message: 'User created successfully', success: true });
     } catch (err) {
-        console.error('Signup Error:', err);
+        logger.error('Signup error', { stack: err.stack });
         res.status(500).json({ message: 'Server error', success: false });
     }
 };
@@ -66,7 +67,7 @@ const login = async (req, res) => {
             }
         });
     } catch (err) {
-        console.error('Login Error:', err);
+        logger.error('Login error', { stack: err.stack });
         res.status(500).json({ message: 'Server error', success: false });
     }
 };
@@ -100,7 +101,7 @@ const createAdmin = async (req, res) => {
             message: 'Admin user created successfully'
         });
     } catch (error) {
-        console.error('Create Admin Error:', error);
+        logger.error('Create admin error', { stack: error.stack });
         res.status(500).json({
             success: false,
             message: 'Server error while creating admin user',
@@ -111,12 +112,12 @@ const createAdmin = async (req, res) => {
 
 const createDummyAdmin = async () => {
     try {
-        console.log("Checking for admin...");
+        logger.info('Checking for admin...');
 
         const adminExist = await User.findOne({ email: 'admin@example.com' });
 
         if (!adminExist) {
-            console.log("Creating dummy admin...");
+            logger.info('Creating dummy admin...');
 
             const hashedPassword = await bcrypt.hash('admin123', 10);
 
@@ -129,13 +130,13 @@ const createDummyAdmin = async () => {
 
             await dummyAdmin.save();
 
-            console.log("Dummy admin created successfully");
+            logger.info('Dummy admin created successfully');
         } else {
-            console.log("Dummy admin already exists");
+            logger.info('Dummy admin already exists');
         }
 
     } catch (err) {
-        console.error("Dummy Admin Error:", err);
+        logger.error('Dummy admin error', { stack: err.stack });
     }
 };
 
