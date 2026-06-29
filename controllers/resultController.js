@@ -1,22 +1,24 @@
 const Result = require('../models/resultModel');
 const { logger } = require('../config/logger');
+const { STATUS, sendResponse } = require('../utils/statusCode');
 
-// Get all results
 const getResults = async (req, res) => {
     try {
         const results = await Result.find({}).sort({ createdAt: -1 });
-        res.status(200).json({ success: true, data: results });
+        return sendResponse(res, STATUS.OK, { data: results });
     } catch (error) {
         logger.error('Get results error', { stack: error.stack });
-        res.status(500).json({ success: false, message: 'Server error while fetching results', error: error.message });
+        return sendResponse(res, STATUS.INTERNAL_SERVER_ERROR, {
+            message: 'Server error while fetching results',
+            error: error.message,
+        });
     }
 };
 
-// Create a result
 const createResult = async (req, res) => {
     try {
         const { name, exam, rank, score, image, college } = req.body;
-        
+
         const newResult = new Result({
             name,
             exam,
@@ -25,56 +27,74 @@ const createResult = async (req, res) => {
             image: image || undefined,
             college
         });
-        
+
         await newResult.save();
-        res.status(201).json({ success: true, message: 'Result created successfully', data: newResult });
+        return sendResponse(res, STATUS.CREATED, {
+            message: 'Result created successfully',
+            data: newResult,
+        });
     } catch (error) {
         logger.error('Create result error', { stack: error.stack });
-        res.status(500).json({ success: false, message: 'Server error while creating result', error: error.message });
+        return sendResponse(res, STATUS.INTERNAL_SERVER_ERROR, {
+            message: 'Server error while creating result',
+            error: error.message,
+        });
     }
 };
 
-// Update a result
 const updateResult = async (req, res) => {
     try {
         const { id } = req.params;
         const { name, exam, rank, score, image, college } = req.body;
-        
+
         const updatedResult = await Result.findByIdAndUpdate(
             id,
             { name, exam, rank, score, image, college },
             { new: true, runValidators: true }
         );
-        
+
         if (!updatedResult) {
-            return res.status(404).json({ success: false, message: 'Result not found' });
+            return sendResponse(res, STATUS.NOT_FOUND, {
+                message: 'Result not found',
+            });
         }
-        
-        res.status(200).json({ success: true, message: 'Result updated successfully', data: updatedResult });
+
+        return sendResponse(res, STATUS.OK, {
+            message: 'Result updated successfully',
+            data: updatedResult,
+        });
     } catch (error) {
         logger.error('Update result error', { stack: error.stack });
-        res.status(500).json({ success: false, message: 'Server error while updating result', error: error.message });
+        return sendResponse(res, STATUS.INTERNAL_SERVER_ERROR, {
+            message: 'Server error while updating result',
+            error: error.message,
+        });
     }
 };
 
-// Delete a result
 const deleteResult = async (req, res) => {
     try {
         const { id } = req.params;
         const deletedResult = await Result.findByIdAndDelete(id);
-        
+
         if (!deletedResult) {
-            return res.status(404).json({ success: false, message: 'Result not found' });
+            return sendResponse(res, STATUS.NOT_FOUND, {
+                message: 'Result not found',
+            });
         }
-        
-        res.status(200).json({ success: true, message: 'Result deleted successfully' });
+
+        return sendResponse(res, STATUS.OK, {
+            message: 'Result deleted successfully',
+        });
     } catch (error) {
         logger.error('Delete result error', { stack: error.stack });
-        res.status(500).json({ success: false, message: 'Server error while deleting result', error: error.message });
+        return sendResponse(res, STATUS.INTERNAL_SERVER_ERROR, {
+            message: 'Server error while deleting result',
+            error: error.message,
+        });
     }
 };
 
-// Seed default results if collection is empty
 const seedInitialResults = async () => {
     try {
         const count = await Result.countDocuments();
