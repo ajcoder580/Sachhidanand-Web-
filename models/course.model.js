@@ -4,7 +4,10 @@ const Schema = mongoose.Schema;
 const courseSchema = new Schema({
     name: {
         type: String,
-        required: true
+        required: true,
+        minlength: [3, "Course name must be at least 3 characters long"],
+        maxlength: [50, "Course name must be less than 50 characters long"],
+        trim: true,
     },
     category: {
         type: String,
@@ -28,7 +31,8 @@ const courseSchema = new Schema({
     },
     description: {
         type: String,
-        default: 'NA'
+        default: 'NA',
+        maxlength:[1000, "Description must be less than 1000 characters long"],
     },
     price: {
         type: Number,
