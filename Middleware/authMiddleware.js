@@ -36,7 +36,7 @@ const signupValidation = (req, res, next) => {
             'any.only': 'Confirm password must be same as password',
             'string.empty': 'Confirm password cannot be empty'
         }),
-    role: joi.string().valid('student',"teacher","admin").required()
+    role: joi.string().valid('student',"teacher").required()
   
 });
     const {error}  = schema.validate(req.body);

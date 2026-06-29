@@ -4,7 +4,12 @@ const jwt = require('jsonwebtoken');
 
 const signup = async (req, res) => {
     try {
-        const { name, email, password,confirmPassword, role } = req.body;
+        const { name, email, password, confirmPassword, role } = req.body;
+
+        // Block signup with admin role
+        if (role === 'admin') {
+            return res.status(400).json({ message: 'Cannot sign up as admin directly', success: false });
+        }
 
         // Check if user already exists
         const existingUser = await User.findOne({ email });
@@ -19,7 +24,6 @@ const signup = async (req, res) => {
             name,
             email,
             password: hashedPassword,
-            confirmPassword:hashedPassword,
             role: role || 'student'
         });
 
@@ -72,24 +76,6 @@ const createAdmin = async (req, res) => {
         // Extract admin user data from request body
         const { name, email, password, phone, address } = req.body;
 
-        // Check if user is authenticated and is an admin
-        const token = req.headers.authorization?.split(' ')[1];
-        if (!token) {
-            return res.status(401).json({ success: false, message: 'Unauthorized: No token provided' });
-        }
-
-        try {
-            const decoded = jwt.verify(token, process.env.JWT_SECRET);
-            
-            // Verify the user making the request is an admin
-            const requestingUser = await User.findById(decoded.id);
-            if (!requestingUser || requestingUser.role !== 'admin') {
-                return res.status(403).json({ success: false, message: 'Forbidden: Only admins can create other admin accounts' });
-            }
-        } catch (error) {
-            return res.status(401).json({ success: false, message: 'Unauthorized: Invalid token' });
-        }
-
         // Check if user with this email already exists
         const existingUser = await User.findOne({ email });
         if (existingUser) {
@@ -123,4 +109,34 @@ const createAdmin = async (req, res) => {
     }
 };
 
-module.exports = { signup, login, createAdmin };
+const createDummyAdmin = async () => {
+    try {
+        console.log("Checking for admin...");
+
+        const adminExist = await User.findOne({ email: 'admin@example.com' });
+
+        if (!adminExist) {
+            console.log("Creating dummy admin...");
+
+            const hashedPassword = await bcrypt.hash('admin123', 10);
+
+            const dummyAdmin = new User({
+                name: 'Dummy Admin',
+                email: 'admin@example.com',
+                password: hashedPassword,
+                role: 'admin'
+            });
+
+            await dummyAdmin.save();
+
+            console.log("Dummy admin created successfully");
+        } else {
+            console.log("Dummy admin already exists");
+        }
+
+    } catch (err) {
+        console.error("Dummy Admin Error:", err);
+    }
+};
+
+module.exports = { signup, login, createAdmin, createDummyAdmin };
