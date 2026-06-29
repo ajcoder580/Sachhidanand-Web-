@@ -1,4 +1,4 @@
-const rateLimit = require('express-rate-limit');
+const { rateLimit, ipKeyGenerator } = require('express-rate-limit');
 
 const loginLimiter = rateLimit({
     windowMs: 60 * 1000,
@@ -30,7 +30,7 @@ const userIpLimiter = rateLimit({
     legacyHeaders: false,
     keyGenerator: (req) => {
         const userId = req.user?.id || req.user?._id || 'anonymous';
-        const ip = req.ip || req.socket?.remoteAddress || 'unknown';
+        const ip = ipKeyGenerator(req.ip || req.socket?.remoteAddress || 'unknown');
         return `${userId}:${ip}`;
     },
     message: {
