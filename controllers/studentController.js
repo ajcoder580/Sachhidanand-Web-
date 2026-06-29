@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const { logger } = require('../config/logger');
 const { STATUS, sendResponse } = require('../utils/statusCode');
+const { getPaginationOptions, buildPaginationMeta } = require('../utils/paginationHelper');
 
 // Configure Cloudinary if credentials are set in environment
 const isCloudinaryConfigured = process.env.CLOUDINARY_CLOUD_NAME && 
@@ -200,7 +201,8 @@ const editMyApplication = async (req, res) => {
 // Admin: Get applications with pagination & filters (class, status, search)
 const adminGetApplications = async (req, res) => {
     try {
-        const { classApplyingFor, status, search, page = 1, limit = 10 } = req.query;
+        const { classApplyingFor, status, search } = req.query;
+        const { page, limit, skip } = getPaginationOptions(req.query);
         
         const query = {};
 
@@ -222,23 +224,16 @@ const adminGetApplications = async (req, res) => {
             ];
         }
 
-        const skip = (parseInt(page) - 1) * parseInt(limit);
-        
         const applications = await Student.find(query)
             .sort({ createdAt: -1 })
             .skip(skip)
-            .limit(parseInt(limit));
+            .limit(limit);
 
         const total = await Student.countDocuments(query);
 
         return sendResponse(res, STATUS.OK, {
             data: applications,
-            pagination: {
-                total,
-                page: parseInt(page),
-                limit: parseInt(limit),
-                pages: Math.ceil(total / parseInt(limit))
-            }
+            pagination: buildPaginationMeta(total, page, limit),
         });
     } catch (error) {
         logger.error('Admin get applications error', { stack: error.stack });
