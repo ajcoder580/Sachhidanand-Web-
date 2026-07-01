@@ -22,8 +22,7 @@ const createEnquiry = async (req, res) => {
     }
 
     return sendResponse(res, STATUS.CREATED, {
-      message: 'Enquiry submitted successfully',
-      data: enquiry,
+      message: 'Enquiry submitted successfully'
     });
   } catch (error) {
     logger.error('Create enquiry error', { stack: error.stack });

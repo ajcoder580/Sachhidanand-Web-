@@ -11,7 +11,7 @@ const {
 } = require('../controllers/enquiryController');
 const { authenticateToken } = require('../Middleware/authMiddleware');
 const authorizeRoles = require('../Middleware/AuthoriseRole');
-const { userIpLimiter } = require('../Middleware/rateLimiter');
+const { userIpLimiter, loginLimiter } = require('../Middleware/rateLimiter');
 const {
   validateEnquiryCreate,
   validateEnquiryStatusUpdate,
@@ -19,7 +19,7 @@ const {
 } = require('../validations');
 
 // Public — submit enquiry
-router.post('/', validateEnquiryCreate, createEnquiry);
+router.post('/', loginLimiter, validateEnquiryCreate, createEnquiry);
 
 // Admin routes
 router.get('/admin/stats', authenticateToken, userIpLimiter, authorizeRoles('admin'), adminGetEnquiryStats);
