@@ -58,9 +58,52 @@ const safeParseEnquiryCreate = (body) => {
   }
 };
 
+const enquiryStatusUpdateSchema = z.object({
+  status: z.enum(['new', 'contacted', 'closed'], {
+    required_error: 'Status is required',
+    invalid_type_error: 'Status must be new, contacted, or closed',
+  }),
+});
+
+const enquiryRemarkSchema = z.object({
+  remark: z
+    .string({ required_error: 'Remark is required' })
+    .trim()
+    .min(1, 'Remark is required')
+    .max(500, 'Remark must be less than 500 characters'),
+});
+
+const safeParseEnquiryStatusUpdate = (body) => {
+  try {
+    const data = enquiryStatusUpdateSchema.parse(body);
+    return { success: true, data };
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return { success: false, errors: error.flatten().fieldErrors };
+    }
+    throw error;
+  }
+};
+
+const safeParseEnquiryRemark = (body) => {
+  try {
+    const data = enquiryRemarkSchema.parse(body);
+    return { success: true, data };
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return { success: false, errors: error.flatten().fieldErrors };
+    }
+    throw error;
+  }
+};
+
 module.exports = {
   enquiryCreateSchema,
+  enquiryStatusUpdateSchema,
+  enquiryRemarkSchema,
   parseEnquiryCreate,
   safeParseEnquiryCreate,
+  safeParseEnquiryStatusUpdate,
+  safeParseEnquiryRemark,
   normalizeEnquiryBody,
 };

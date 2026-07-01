@@ -1,8 +1,11 @@
-const { safeParseEnquiryCreate } = require('./enquiry.validation');
-const { validateBody } = require('./validate');
-
-const validateEnquiryCreate = validateBody((body) => safeParseEnquiryCreate(body));
+const {
+  validateEnquiryCreate,
+  validateEnquiryStatusUpdate,
+  validateEnquiryRemark,
+} = require('./enquiry.middleware');
 
 module.exports = {
   validateEnquiryCreate,
+  validateEnquiryStatusUpdate,
+  validateEnquiryRemark,
 };

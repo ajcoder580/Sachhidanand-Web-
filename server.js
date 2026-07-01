@@ -8,6 +8,7 @@ const fs = require('fs');
 const authRoutes = require('./routes/authRoutes');
 const resultRoutes = require('./routes/resultRoutes');
 const studentRoutes = require('./routes/studentRoutes');
+const enquiryRoutes = require('./routes/enquiryRoutes');
 const { generalLimiter } = require('./Middleware/rateLimiter');
 const { logger, requestLogger, errorLogger } = require('./config/logger');
 const { createDummyAdmin } = require('./controllers/authController');
@@ -49,6 +50,7 @@ app.get("/", (req, res) => {
 app.use('/auth', authRoutes);
 app.use('/results', resultRoutes);
 app.use('/students', studentRoutes);
+app.use('/enquiries', enquiryRoutes);
 
 app.use(errorLogger);
 app.use((err, req, res, next) => {
