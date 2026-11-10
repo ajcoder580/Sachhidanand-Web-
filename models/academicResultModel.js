@@ -5,17 +5,23 @@ const academicResultSchema = new Schema({
     studentName: {
         type: String,
         required: true,
-        trim: true
+        trim: true,
+        minlength: [3, "Student name must be at least 3 characters long"],
+        maxlength: [50, "Student name must be less than 50 characters long"],
     },
     rollCode: {
         type: String,
         required: true,
-        trim: true
+        trim: true,
+        minlength: [3, "Roll code must be at least 3 characters long"],
+        maxlength: [20, "Roll code must be less than 20 characters long"],
     },
     rollNumber: {
         type: String,
         required: true,
-        trim: true
+        trim: true,
+        minlength: [3, "Roll number must be at least 3 characters long"],
+        maxlength: [20, "Roll number must be less than 20 characters long"],
     },
     class: {
         type: String,

@@ -2,6 +2,9 @@ const Student = require('../models/studentModel');
 const cloudinary = require('cloudinary').v2;
 const fs = require('fs');
 const path = require('path');
+const { logger } = require('../config/logger');
+const { STATUS, sendResponse } = require('../utils/statusCode');
+const { getPaginationOptions, buildPaginationMeta } = require('../utils/paginationHelper');
 
 // Configure Cloudinary if credentials are set in environment
 const isCloudinaryConfigured = process.env.CLOUDINARY_CLOUD_NAME && 
@@ -57,7 +60,9 @@ const uploadToLocal = (fileBuffer, originalname) => {
 const uploadDocument = async (req, res) => {
     try {
         if (!req.file) {
-            return res.status(400).json({ success: false, message: 'No file uploaded' });
+            return sendResponse(res, STATUS.BAD_REQUEST, {
+                message: 'No file uploaded',
+            });
         }
 
         let fileUrl = '';
@@ -70,14 +75,16 @@ const uploadDocument = async (req, res) => {
             fileUrl = `${protocol}://${host}/uploads/${filename}`;
         }
 
-        res.status(200).json({
-            success: true,
+        return sendResponse(res, STATUS.OK, {
             message: 'File uploaded successfully',
-            url: fileUrl
+            url: fileUrl,
         });
     } catch (error) {
-        console.error('File upload error:', error);
-        res.status(500).json({ success: false, message: 'File upload failed', error: error.message });
+        logger.error('File upload error', { stack: error.stack });
+        return sendResponse(res, STATUS.INTERNAL_SERVER_ERROR, {
+            message: 'File upload failed',
+            error: error.message,
+        });
     }
 };
 
@@ -89,18 +96,16 @@ const applyAdmission = async (req, res) => {
         // Check if application already exists for this user
         const existing = await Student.findOne({ userId });
         if (existing) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'You have already submitted an admission application' 
+            return sendResponse(res, STATUS.BAD_REQUEST, {
+                message: 'You have already submitted an admission application',
             });
         }
 
         const { personalDetails, academicDetails, documents } = req.body;
 
         if (!personalDetails || !academicDetails || !documents) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Missing required admission form fields' 
+            return sendResponse(res, STATUS.BAD_REQUEST, {
+                message: 'Missing required admission form fields',
             });
         }
 
@@ -114,14 +119,16 @@ const applyAdmission = async (req, res) => {
 
         await newStudent.save();
 
-        res.status(201).json({
-            success: true,
+        return sendResponse(res, STATUS.CREATED, {
             message: 'Admission application submitted successfully',
-            data: newStudent
+            data: newStudent,
         });
     } catch (error) {
-        console.error('Apply admission error:', error);
-        res.status(500).json({ success: false, message: 'Failed to submit application', error: error.message });
+        logger.error('Apply admission error', { stack: error.stack });
+        return sendResponse(res, STATUS.INTERNAL_SERVER_ERROR, {
+            message: 'Failed to submit application',
+            error: error.message,
+        });
     }
 };
 
@@ -132,19 +139,18 @@ const getMyApplication = async (req, res) => {
         const application = await Student.findOne({ userId });
         
         if (!application) {
-            return res.status(404).json({
-                success: false,
-                message: 'No admission application found'
+            return sendResponse(res, STATUS.NOT_FOUND, {
+                message: 'No admission application found',
             });
         }
 
-        res.status(200).json({
-            success: true,
-            data: application
-        });
+        return sendResponse(res, STATUS.OK, { data: application });
     } catch (error) {
-        console.error('Get my application error:', error);
-        res.status(500).json({ success: false, message: 'Failed to fetch application', error: error.message });
+        logger.error('Get my application error', { stack: error.stack });
+        return sendResponse(res, STATUS.INTERNAL_SERVER_ERROR, {
+            message: 'Failed to fetch application',
+            error: error.message,
+        });
     }
 };
 
@@ -155,16 +161,14 @@ const editMyApplication = async (req, res) => {
         const application = await Student.findOne({ userId });
 
         if (!application) {
-            return res.status(404).json({
-                success: false,
-                message: 'No admission application found'
+            return sendResponse(res, STATUS.NOT_FOUND, {
+                message: 'No admission application found',
             });
         }
 
         if (application.status !== 'Pending' && application.status !== 'Correction Requested') {
-            return res.status(400).json({
-                success: false,
-                message: `Cannot edit application when status is '${application.status}'`
+            return sendResponse(res, STATUS.BAD_REQUEST, {
+                message: `Cannot edit application when status is '${application.status}'`,
             });
         }
 
@@ -181,21 +185,24 @@ const editMyApplication = async (req, res) => {
 
         await application.save();
 
-        res.status(200).json({
-            success: true,
+        return sendResponse(res, STATUS.OK, {
             message: 'Application updated successfully',
-            data: application
+            data: application,
         });
     } catch (error) {
-        console.error('Edit my application error:', error);
-        res.status(500).json({ success: false, message: 'Failed to update application', error: error.message });
+        logger.error('Edit my application error', { stack: error.stack });
+        return sendResponse(res, STATUS.INTERNAL_SERVER_ERROR, {
+            message: 'Failed to update application',
+            error: error.message,
+        });
     }
 };
 
 // Admin: Get applications with pagination & filters (class, status, search)
 const adminGetApplications = async (req, res) => {
     try {
-        const { classApplyingFor, status, search, page = 1, limit = 10 } = req.query;
+        const { classApplyingFor, status, search } = req.query;
+        const { page, limit, skip } = getPaginationOptions(req.query);
         
         const query = {};
 
@@ -217,28 +224,23 @@ const adminGetApplications = async (req, res) => {
             ];
         }
 
-        const skip = (parseInt(page) - 1) * parseInt(limit);
-        
         const applications = await Student.find(query)
             .sort({ createdAt: -1 })
             .skip(skip)
-            .limit(parseInt(limit));
+            .limit(limit);
 
         const total = await Student.countDocuments(query);
 
-        res.status(200).json({
-            success: true,
+        return sendResponse(res, STATUS.OK, {
             data: applications,
-            pagination: {
-                total,
-                page: parseInt(page),
-                limit: parseInt(limit),
-                pages: Math.ceil(total / parseInt(limit))
-            }
+            pagination: buildPaginationMeta(total, page, limit),
         });
     } catch (error) {
-        console.error('Admin get applications error:', error);
-        res.status(500).json({ success: false, message: 'Failed to fetch applications', error: error.message });
+        logger.error('Admin get applications error', { stack: error.stack });
+        return sendResponse(res, STATUS.INTERNAL_SERVER_ERROR, {
+            message: 'Failed to fetch applications',
+            error: error.message,
+        });
     }
 };
 
@@ -247,18 +249,17 @@ const adminGetApplicationById = async (req, res) => {
     try {
         const application = await Student.findById(req.params.id);
         if (!application) {
-            return res.status(404).json({
-                success: false,
-                message: 'Application not found'
+            return sendResponse(res, STATUS.NOT_FOUND, {
+                message: 'Application not found',
             });
         }
-        res.status(200).json({
-            success: true,
-            data: application
-        });
+        return sendResponse(res, STATUS.OK, { data: application });
     } catch (error) {
-        console.error('Admin get application by ID error:', error);
-        res.status(500).json({ success: false, message: 'Failed to fetch application', error: error.message });
+        logger.error('Admin get application by ID error', { stack: error.stack });
+        return sendResponse(res, STATUS.INTERNAL_SERVER_ERROR, {
+            message: 'Failed to fetch application',
+            error: error.message,
+        });
     }
 };
 
@@ -269,9 +270,8 @@ const adminUpdateStatus = async (req, res) => {
         const application = await Student.findById(req.params.id);
 
         if (!application) {
-            return res.status(404).json({
-                success: false,
-                message: 'Application not found'
+            return sendResponse(res, STATUS.NOT_FOUND, {
+                message: 'Application not found',
             });
         }
 
@@ -301,14 +301,16 @@ const adminUpdateStatus = async (req, res) => {
 
         await application.save();
 
-        res.status(200).json({
-            success: true,
+        return sendResponse(res, STATUS.OK, {
             message: `Application status updated to ${status}`,
-            data: application
+            data: application,
         });
     } catch (error) {
-        console.error('Admin update status error:', error);
-        res.status(500).json({ success: false, message: 'Failed to update status', error: error.message });
+        logger.error('Admin update status error', { stack: error.stack });
+        return sendResponse(res, STATUS.INTERNAL_SERVER_ERROR, {
+            message: 'Failed to update status',
+            error: error.message,
+        });
     }
 };
 
@@ -319,9 +321,8 @@ const adminUpdateApplication = async (req, res) => {
         const application = await Student.findById(req.params.id);
 
         if (!application) {
-            return res.status(404).json({
-                success: false,
-                message: 'Student application record not found'
+            return sendResponse(res, STATUS.NOT_FOUND, {
+                message: 'Student application record not found',
             });
         }
 
@@ -337,14 +338,16 @@ const adminUpdateApplication = async (req, res) => {
 
         await application.save();
 
-        res.status(200).json({
-            success: true,
+        return sendResponse(res, STATUS.OK, {
             message: 'Student application record updated successfully',
-            data: application
+            data: application,
         });
     } catch (error) {
-        console.error('Admin edit student record error:', error);
-        res.status(500).json({ success: false, message: 'Failed to update student record', error: error.message });
+        logger.error('Admin edit student record error', { stack: error.stack });
+        return sendResponse(res, STATUS.INTERNAL_SERVER_ERROR, {
+            message: 'Failed to update student record',
+            error: error.message,
+        });
     }
 };
 
@@ -353,18 +356,19 @@ const adminDeleteApplication = async (req, res) => {
     try {
         const application = await Student.findByIdAndDelete(req.params.id);
         if (!application) {
-            return res.status(404).json({
-                success: false,
-                message: 'Application not found'
+            return sendResponse(res, STATUS.NOT_FOUND, {
+                message: 'Application not found',
             });
         }
-        res.status(200).json({
-            success: true,
-            message: 'Student record deleted successfully'
+        return sendResponse(res, STATUS.OK, {
+            message: 'Student record deleted successfully',
         });
     } catch (error) {
-        console.error('Admin delete student record error:', error);
-        res.status(500).json({ success: false, message: 'Failed to delete student record', error: error.message });
+        logger.error('Admin delete student record error', { stack: error.stack });
+        return sendResponse(res, STATUS.INTERNAL_SERVER_ERROR, {
+            message: 'Failed to delete student record',
+            error: error.message,
+        });
     }
 };
 
@@ -392,8 +396,7 @@ const adminGetStats = async (req, res) => {
             });
         }
 
-        res.status(200).json({
-            success: true,
+        return sendResponse(res, STATUS.OK, {
             data: {
                 counts: {
                     total,
@@ -407,8 +410,11 @@ const adminGetStats = async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('Admin get stats error:', error);
-        res.status(500).json({ success: false, message: 'Failed to fetch dashboard stats', error: error.message });
+        logger.error('Admin get stats error', { stack: error.stack });
+        return sendResponse(res, STATUS.INTERNAL_SERVER_ERROR, {
+            message: 'Failed to fetch dashboard stats',
+            error: error.message,
+        });
     }
 };
 

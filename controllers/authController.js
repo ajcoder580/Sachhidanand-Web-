@@ -1,23 +1,26 @@
 const User = require('../models/userModel');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const { logger } = require('../config/logger');
+const { STATUS, sendResponse } = require('../utils/statusCode');
 
 const signup = async (req, res) => {
     try {
         const { name, email, password, confirmPassword, role } = req.body;
 
-        // Block signup with admin role
         if (role === 'admin') {
-            return res.status(400).json({ message: 'Cannot sign up as admin directly', success: false });
+            return sendResponse(res, STATUS.BAD_REQUEST, {
+                message: 'Cannot sign up as admin directly',
+            });
         }
 
-        // Check if user already exists
         const existingUser = await User.findOne({ email });
         if (existingUser) {
-            return res.status(400).json({ message: 'User already exists' });
+            return sendResponse(res, STATUS.BAD_REQUEST, {
+                message: 'User already exists',
+            });
         }
 
-        // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
 
         const newUser = new User({
@@ -29,10 +32,14 @@ const signup = async (req, res) => {
 
         await newUser.save();
 
-        res.status(201).json({ message: 'User created successfully', success: true });
+        return sendResponse(res, STATUS.CREATED, {
+            message: 'User created successfully',
+        });
     } catch (err) {
-        console.error('Signup Error:', err);
-        res.status(500).json({ message: 'Server error', success: false });
+        logger.error('Signup error', { stack: err.stack });
+        return sendResponse(res, STATUS.INTERNAL_SERVER_ERROR, {
+            message: 'Server error',
+        });
     }
 };
 
@@ -40,49 +47,55 @@ const login = async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        // Validate user
         const user = await User.findOne({ email });
-        if (!user) return res.status(401).json({ message: 'Invalid credentials' });
+        if (!user) {
+            return sendResponse(res, STATUS.UNAUTHORIZED, {
+                message: 'Invalid credentials',
+            });
+        }
 
         const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) return res.status(401).json({ message: 'Invalid credentials' });
+        if (!isMatch) {
+            return sendResponse(res, STATUS.UNAUTHORIZED, {
+                message: 'Invalid credentials',
+            });
+        }
 
-        // Convert MongoDB ObjectId to string for consistent format
         const token = jwt.sign(
             { id: user._id.toString(), email: user.email, role: user.role, name: user.name },
             process.env.JWT_SECRET,
             { expiresIn: '24h' }
         );
 
-        res.status(200).json({
-            success: true,
+        return sendResponse(res, STATUS.OK, {
             message: 'Login successful',
             token,
             user: {
-                id: user._id.toString(), // Ensure ID is a string
+                id: user._id.toString(),
                 name: user.name,
                 email: user.email,
                 role: user.role
             }
         });
     } catch (err) {
-        console.error('Login Error:', err);
-        res.status(500).json({ message: 'Server error', success: false });
+        logger.error('Login error', { stack: err.stack });
+        return sendResponse(res, STATUS.INTERNAL_SERVER_ERROR, {
+            message: 'Server error',
+        });
     }
 };
 
 const createAdmin = async (req, res) => {
     try {
-        // Extract admin user data from request body
         const { name, email, password, phone, address } = req.body;
 
-        // Check if user with this email already exists
         const existingUser = await User.findOne({ email });
         if (existingUser) {
-            return res.status(400).json({ success: false, message: 'User with this email already exists' });
+            return sendResponse(res, STATUS.BAD_REQUEST, {
+                message: 'User with this email already exists',
+            });
         }
 
-        // Create new admin user
         const hashedPassword = await bcrypt.hash(password, 10);
         const newAdmin = new User({
             name,
@@ -90,33 +103,31 @@ const createAdmin = async (req, res) => {
             password: hashedPassword,
             phone,
             address,
-            role: 'admin' // Force role to be admin
+            role: 'admin'
         });
 
         await newAdmin.save();
 
-        res.status(201).json({
-            success: true,
-            message: 'Admin user created successfully'
+        return sendResponse(res, STATUS.CREATED, {
+            message: 'Admin user created successfully',
         });
     } catch (error) {
-        console.error('Create Admin Error:', error);
-        res.status(500).json({
-            success: false,
+        logger.error('Create admin error', { stack: error.stack });
+        return sendResponse(res, STATUS.INTERNAL_SERVER_ERROR, {
             message: 'Server error while creating admin user',
-            error: error.message
+            error: error.message,
         });
     }
 };
 
 const createDummyAdmin = async () => {
     try {
-        console.log("Checking for admin...");
+        logger.info('Checking for admin...');
 
         const adminExist = await User.findOne({ email: 'admin@example.com' });
 
         if (!adminExist) {
-            console.log("Creating dummy admin...");
+            logger.info('Creating dummy admin...');
 
             const hashedPassword = await bcrypt.hash('admin123', 10);
 
@@ -129,13 +140,13 @@ const createDummyAdmin = async () => {
 
             await dummyAdmin.save();
 
-            console.log("Dummy admin created successfully");
+            logger.info('Dummy admin created successfully');
         } else {
-            console.log("Dummy admin already exists");
+            logger.info('Dummy admin already exists');
         }
 
     } catch (err) {
-        console.error("Dummy Admin Error:", err);
+        logger.error('Dummy admin error', { stack: err.stack });
     }
 };
 
