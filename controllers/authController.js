@@ -49,7 +49,7 @@ const login = async (req, res) => {
 
         // Convert MongoDB ObjectId to string for consistent format
         const token = jwt.sign(
-            { id: user._id.toString(), email: user.email, role: user.role },
+            { id: user._id.toString(), email: user.email, role: user.role, name: user.name },
             process.env.JWT_SECRET,
             { expiresIn: '24h' }
         );

@@ -61,8 +61,26 @@ const loginValidation = (req, res, next) => {
      next();
  };
 
- module.exports = {
+ // Middleware for optional JWT token verification
+const optionalAuth = (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    
+    if (token) {
+        try {
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            req.user = decoded;
+        } catch (error) {
+            // Token is invalid/expired, continue as unauthenticated
+            req.user = null;
+        }
+    }
+    next();
+};
+
+module.exports = {
     signupValidation,
     loginValidation,
-    authenticateToken
+    authenticateToken,
+    optionalAuth
 };

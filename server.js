@@ -7,8 +7,10 @@ const fs = require('fs');
 const authRoutes = require('./routes/authRoutes');
 const resultRoutes = require('./routes/resultRoutes');
 const studentRoutes = require('./routes/studentRoutes');
+const mockTestRoutes = require('./routes/mockTestRoutes');
 const { createDummyAdmin } = require('./controllers/authController');
 const { seedInitialResults } = require('./controllers/resultController');
+const { seedDefaultMockTests } = require('./controllers/mockTestController');
 
 dotenv.config();
 
@@ -35,6 +37,7 @@ app.get("/", (req, res) => {
 app.use('/auth', authRoutes);
 app.use('/results', resultRoutes);
 app.use('/students', studentRoutes);
+app.use('/mock-tests', mockTestRoutes);
 
 // Connect DB and Start Server
 const startServer = async () => {
@@ -48,6 +51,9 @@ const startServer = async () => {
 
         // Seed default results if empty
         await seedInitialResults();
+
+        // Seed default mock tests if empty
+        await seedDefaultMockTests();
 
         app.listen(PORT, () => {
             console.log(`Server running on port ${PORT}`);
