@@ -35,10 +35,14 @@ app.use(express.urlencoded({ extended: true }));
 app.use(requestLogger);
 app.use(generalLimiter);
 
-// Ensure uploads directory exists on startup
-const uploadsDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
+// Ensure uploads directory exists on startup (safely handle read-only filesystem in serverless)
+const uploadsDir = process.env.VERCEL ? path.join('/tmp', 'uploads') : path.join(__dirname, 'uploads');
+try {
+    if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+} catch (e) {
+    logger.warn('Could not create uploads directory', { message: e.message });
 }
 app.use('/uploads', express.static(uploadsDir));
 
@@ -61,27 +65,54 @@ app.use((err, req, res, next) => {
     });
 });
 
-// Connect DB and Start Server
-const startServer = async () => {
+// Database Connection Helper
+let isDbConnected = false;
+const connectDB = async () => {
+    if (isDbConnected || mongoose.connection.readyState >= 1) {
+        return;
+    }
+    if (!process.env.MONGO_URI) {
+        logger.error('MONGO_URI is missing');
+        return;
+    }
+    await mongoose.connect(process.env.MONGO_URI);
+    isDbConnected = true;
+    logger.info('MongoDB connected successfully');
+
     try {
-        await mongoose.connect(process.env.MONGO_URI);
-
-        logger.info('MongoDB connected successfully');
-
         await createDummyAdmin();
         await seedInitialResults();
-
-        // Seed default mock tests if empty
         await seedDefaultMockTests();
-
-        app.listen(PORT, () => {
-            logger.info(`Server running on port ${PORT}`, { env: process.env.NODE_ENV || 'development' });
-        });
-
-    } catch (error) {
-        logger.error('Server startup failed', { stack: error.stack });
-        process.exit(1);
+    } catch (seedErr) {
+        logger.warn('Initial seeding warning', { message: seedErr.message });
     }
 };
 
-startServer();
+// In Vercel serverless environment: ensure DB is connected before request processing
+if (process.env.VERCEL) {
+    app.use(async (req, res, next) => {
+        try {
+            await connectDB();
+            next();
+        } catch (err) {
+            next(err);
+        }
+    });
+} else {
+    // In local / standard server environment: start listener
+    const startServer = async () => {
+        try {
+            await connectDB();
+            app.listen(PORT, () => {
+                logger.info(`Server running on port ${PORT}`, { env: process.env.NODE_ENV || 'development' });
+            });
+        } catch (error) {
+            logger.error('Server startup failed', { stack: error.stack });
+            process.exit(1);
+        }
+    };
+
+    startServer();
+}
+
+module.exports = app;
