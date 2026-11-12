@@ -41,11 +41,15 @@ const uploadToLocal = (fileBuffer, originalname) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     const ext = path.extname(originalname);
     const filename = uniqueSuffix + ext;
-    const uploadsDir = path.join(__dirname, '../uploads');
+    const uploadsDir = process.env.VERCEL ? path.join('/tmp', 'uploads') : path.join(__dirname, '../uploads');
     
     // Ensure folder exists
-    if (!fs.existsSync(uploadsDir)) {
-        fs.mkdirSync(uploadsDir, { recursive: true });
+    try {
+        if (!fs.existsSync(uploadsDir)) {
+            fs.mkdirSync(uploadsDir, { recursive: true });
+        }
+    } catch (e) {
+        logger.warn('Could not create student uploads dir', { message: e.message });
     }
     
     const filepath = path.join(uploadsDir, filename);

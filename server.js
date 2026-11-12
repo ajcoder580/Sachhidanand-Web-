@@ -12,7 +12,7 @@ const mockTestRoutes = require('./routes/mockTestRoutes');
 const enquiryRoutes = require('./routes/enquiryRoutes');
 const { generalLimiter } = require('./Middleware/rateLimiter');
 const { logger, requestLogger, errorLogger } = require('./config/logger');
-const { createDummyAdmin } = require('./controllers/authController');
+const { seedInitialAdmin } = require('./controllers/authController');
 const { seedInitialResults } = require('./controllers/resultController');
 const { seedDefaultMockTests } = require('./controllers/mockTestController');
 
@@ -80,7 +80,7 @@ const connectDB = async () => {
     logger.info('MongoDB connected successfully');
 
     try {
-        await createDummyAdmin();
+        await seedInitialAdmin();
         await seedInitialResults();
         await seedDefaultMockTests();
     } catch (seedErr) {

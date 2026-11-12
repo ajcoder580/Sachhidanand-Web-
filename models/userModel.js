@@ -41,6 +41,11 @@ const userSchema = new Schema({
         required: false,
         default: 'NA'
     },
+    address: {
+        type: String,
+        required: false,
+        default: 'NA'
+    },
     class: {
         type: String,
         required: false,
